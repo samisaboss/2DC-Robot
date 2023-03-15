@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { remove } from '../features/bot/botSlice';
+import { useSelector, useDispatch } from 'react-redux';
 import {
     Box,
     TableContainer, 
@@ -13,10 +15,10 @@ import {
     Button
 } from '@chakra-ui/react';
 import { Link } from 'react-router-dom';
-import { deleteRobot } from '../functions/utils';
 
 export const RobotList = props => {
-    const [bots, setBots] = useState(JSON.parse( localStorage.getItem('bots') || '[]' ));
+    const bots = useSelector((store) => store.bot.bots);
+    const dispatch = useDispatch();
 
     const botsColumns = bots.map(bot => {
         return(
@@ -35,7 +37,7 @@ export const RobotList = props => {
                         <Button colorScheme='teal' size='xs' as={Link} to={`/edit/${bot.id}`}>
                             Edit
                         </Button>
-                        <Button colorScheme='red' size='xs' onClick={() => deleteRobot(bot.id, setBots)}>
+                        <Button colorScheme='red' size='xs' onClick={()=>dispatch(remove(bot.id))}>
                             Delete
                         </Button>
                     </HStack>
