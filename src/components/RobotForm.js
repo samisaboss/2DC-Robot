@@ -1,4 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { add, edit } from '../features/bot/botSlice';
+import { useSelector, useDispatch } from 'react-redux';
+
+import md5 from 'md5';
+import { useNavigate, useParams } from "react-router-dom";
+import { findBot, isFormValid } from '../functions/utils';
+
 import {
     Heading, 
     Stack, 
@@ -11,14 +18,14 @@ import {
     Button, 
     Avatar
 } from '@chakra-ui/react';
-import md5 from 'md5';
-import { useNavigate, useParams } from "react-router-dom";
-import { getRobot, addRobot, updateRobot, isFormValid } from '../functions/utils';
 
 export const RobotForm = props => {
     const { action, ...allProps } = props;
-    const navigate = useNavigate();
     const { botId } = useParams();
+    const bots = useSelector((store) => store.bot.bots);
+
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
 
     const [robot, setRobot] = useState({
         id: '', 
@@ -34,14 +41,15 @@ export const RobotForm = props => {
 
     useEffect(() => {
         if( action === 'edit' ){
-            const bot = getRobot(botId);
+            const bot = findBot(bots, botId);
             if( bot ){
                 setRobot(bot);
             }
+
             setButtonText('Update');
             setPageHeading('Edit Robot');
         }
-    }, [action, botId]);
+    }, [bots, action, botId]);
 
     const handleNameChange = (event) => {
         setRobot({
@@ -76,7 +84,10 @@ export const RobotForm = props => {
 
     const handleSubmit = () => {
         if( isFormValid(robot) ){
-            if( action === 'edit' ? updateRobot(botId, robot) : addRobot(robot) ){
+            if( action === 'edit' ? dispatch( edit({
+                id: botId, 
+                data: robot
+            }) ) : dispatch( add(robot) ) ){
                 setRobot({
                     id: '', 
                     name: '', 

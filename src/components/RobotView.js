@@ -1,4 +1,8 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
+import { remove } from '../features/bot/botSlice';
+
 import {
     Card, 
     CardBody,
@@ -11,10 +15,13 @@ import {
     Text
 } from '@chakra-ui/react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { getRobot, deleteRobot } from '../functions/utils';
+import { findBot } from '../functions/utils';
 
 export const RobotView = props => {
     const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const bots = useSelector((store) => store.bot.bots);
+
     const [robot, setRobot] = useState({
         id: '', 
         name: '', 
@@ -27,16 +34,16 @@ export const RobotView = props => {
     const { botId } = useParams();
 
     useEffect(() => {
-        const bot = getRobot(botId);
+        const bot = findBot(bots, botId);
         if( bot ){
             setRobot(bot);
         }else{
             navigate('/');
         }
-    }, [botId, navigate]);
+    }, [bots, botId]);
 
     const handleDelete = () => {
-        if( deleteRobot(botId, setRobot) ){
+        if( dispatch( remove(botId) ) ){
             navigate('/');
         }else{
             alert('Delete Failed');
