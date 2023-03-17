@@ -1,6 +1,5 @@
 import React from 'react';
-import { remove } from '../features/bot/botSlice';
-import { useSelector, useDispatch } from 'react-redux';
+import { useGetBotsQuery, useDeleteBotMutation } from '../features/api/botApi';
 import {
     Box,
     TableContainer, 
@@ -17,34 +16,54 @@ import {
 import { Link } from 'react-router-dom';
 
 export const RobotList = props => {
-    const bots = useSelector((store) => store.bot.bots);
-    const dispatch = useDispatch();
+    const {
+        data: bots, 
+        isLoading, 
+        isSuccess, 
+        isError, 
+        error
+    } = useGetBotsQuery();
 
-    const botsColumns = bots.map(bot => {
-        return(
-            <Tr key={bot.id}>
-                <Td>
-                    <Link to={`/view/${bot.id}`}>
-                        <HStack align='center'>
-                            <Avatar name={bot.name} src={bot.avatar.url} />
-                            <span>{bot.name}</span>
+    const [deleteBot, { isLoading: isDeleting, originalArgs }] = useDeleteBotMutation();
+
+    const handleDelete = (id) => {
+        deleteBot(id);
+    }
+
+    let content;
+    if( isLoading ){
+        content = <Tr><td colSpan={3}>Loading....</td></Tr>;
+    }else if( isSuccess ){
+        content = bots.map(bot => {
+            const isProcessing = isDeleting && originalArgs === bot.id;
+
+            return(
+                <Tr key={bot.id}>
+                    <Td>
+                        <Link to={`/view/${bot.id}`}>
+                            <HStack align='center'>
+                                <Avatar name={bot.name} src={bot.avatar.url} />
+                                <span>{bot.name}</span>
+                            </HStack>
+                        </Link>
+                    </Td>
+                    <Td>{bot.purpose}</Td>
+                    <Td>
+                        <HStack spacing='5px'>
+                            <Button colorScheme='teal' size='xs' as={Link} to={`/edit/${bot.id}`}>
+                                Edit
+                            </Button>
+                            <Button colorScheme='red' size='xs' onClick={()=>handleDelete(bot.id)} isDisabled={isProcessing} isLoading={isProcessing}>
+                                Delete
+                            </Button>
                         </HStack>
-                    </Link>
-                </Td>
-                <Td>{bot.purpose}</Td>
-                <Td>
-                    <HStack spacing='5px'>
-                        <Button colorScheme='teal' size='xs' as={Link} to={`/edit/${bot.id}`}>
-                            Edit
-                        </Button>
-                        <Button colorScheme='red' size='xs' onClick={()=>dispatch(remove(bot.id))}>
-                            Delete
-                        </Button>
-                    </HStack>
-                </Td>
-            </Tr>
-        )
-    });
+                    </Td>
+                </Tr>
+            )
+        });
+    }else if( isError ){
+        content = <Tr><td colSpan={3}>{error}</td></Tr>;
+    }
 
     return (
         <section {...props}>
@@ -58,7 +77,7 @@ export const RobotList = props => {
                                 <Th></Th>
                             </Tr>
                         </Thead>
-                        <Tbody>{botsColumns}</Tbody>
+                        <Tbody>{content}</Tbody>
                     </Table>
                 </TableContainer>
             </Box>

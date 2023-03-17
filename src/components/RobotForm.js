@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { add, edit } from '../features/bot/botSlice';
-import { useSelector, useDispatch } from 'react-redux';
-
-import md5 from 'md5';
 import { useNavigate, useParams } from "react-router-dom";
-import { findBot, isFormValid } from '../functions/utils';
+import { isFormValid } from '../functions/utils';
+import { useAddBotMutation, useUpdateBotMutation, useGetBotQuery } from '../features/api/botApi';
 
 import {
     Heading, 
@@ -22,10 +19,8 @@ import {
 export const RobotForm = props => {
     const { action, ...allProps } = props;
     const { botId } = useParams();
-    const bots = useSelector((store) => store.bot.bots);
 
     const navigate = useNavigate();
-    const dispatch = useDispatch();
 
     const [robot, setRobot] = useState({
         id: '', 
@@ -36,25 +31,23 @@ export const RobotForm = props => {
             svg: ''
         }
     });
-    const [buttonText, setButtonText] = useState('Build Now');
-    const [pageHeading, setPageHeading] = useState('Build Robot');
 
-    useEffect(() => {
-        if( action === 'edit' ){
-            const bot = findBot(bots, botId);
-            if( bot ){
-                setRobot(bot);
-            }
+    const {
+        data: bot,
+        isSuccess, 
+        isLoading
+    } = useGetBotQuery(botId, {
+        skip: (action !== 'edit'),
+        refetchOnMountOrArgChange: true,
+    });
+    
+    const [ addBot, { isLoading: isAdding } ] = useAddBotMutation();
+    const [ updateBot, { isLoading: isUpdating } ] = useUpdateBotMutation();
 
-            setButtonText('Update');
-            setPageHeading('Edit Robot');
-        }
-    }, [bots, action, botId]);
 
     const handleNameChange = (event) => {
         setRobot({
             ...robot, 
-            id: md5(event.target.value), 
             name: event.target.value
         });
     }
@@ -82,34 +75,52 @@ export const RobotForm = props => {
         });
     }
 
+    const resetAll = () => {
+        setRobot({
+            id: '', 
+            name: '', 
+            purpose: '', 
+            avatar: {
+                url: 'https://api.dicebear.com/5.x/bottts-neutral/svg',
+                svg: ''
+            }
+        });
+        navigate('/');
+    }
+
     const handleSubmit = () => {
         if( isFormValid(robot) ){
-            if( action === 'edit' ? dispatch( edit({
-                id: botId, 
-                data: robot
-            }) ) : dispatch( add(robot) ) ){
-                setRobot({
-                    id: '', 
-                    name: '', 
-                    purpose: '', 
-                    avatar: {
-                        url: 'https://api.dicebear.com/5.x/bottts-neutral/svg',
-                        svg: ''
-                    }
-                });
-    
-                navigate('/');
+            if( action === 'edit' ){
+                updateBot(robot)
+                    .then(() => {
+                        resetAll();
+                    })
+                    .catch((error) => console.log(error));
             }else{
-                alert('Robot already exist');
+                addBot(robot)
+                    .then(() => {
+                        resetAll();
+                    })
+                    .catch((error) => console.log(error));
             }
         }else{
             alert('Form is not valid');
         }
     }
 
+    useEffect(() => {
+        if( isSuccess ){
+            setRobot(bot);
+        }
+    }, [isSuccess, bot]);
+
+    if( isLoading ){
+        return <p>Loading...</p>;
+    }
+
     return (
         <section {...allProps}>
-            <Heading as='h1' size='xl' mb={4}>{pageHeading}</Heading>
+            <Heading as='h1' size='xl' mb={4}>{ action === 'edit' ? 'Update Robot' : 'Build Robot' }</Heading>
             <HStack spacing='32px' align='top' mb={4}>
                 <Box w='75%'>
                     <Stack spacing={3}>
@@ -136,7 +147,7 @@ export const RobotForm = props => {
                     </Stack>
                 </Box>
             </HStack>
-            <Button colorScheme='teal' onClick={handleSubmit}>{buttonText}</Button>
+            <Button colorScheme='teal' onClick={handleSubmit} isDisabled={isAdding || isUpdating} isLoading={isAdding || isUpdating}>{ action === 'edit' ? 'Edit Now' : 'Build Now' }</Button>
         </section>
     );
 };

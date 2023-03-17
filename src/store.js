@@ -1,8 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit'
-import botReducer from './features/bot/botSlice'
+import { botApi } from './features/api/botApi';
 
 export const store = configureStore({
   reducer: {
-    bot: botReducer
+    [botApi.reducerPath]: botApi.reducer
   },
+  middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(botApi.middleware),
 });
